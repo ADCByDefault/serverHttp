@@ -17,10 +17,14 @@ public class App {
 
     private static void sendFile(Socket s, String file, String extFile) {
         try {
+            DataOutputStream out = new DataOutputStream(s.getOutputStream());
+            String filet = file;
+            file = "./root" + file;
             try {
-                DataOutputStream out = new DataOutputStream(s.getOutputStream());
                 File myObj = new File(file);
                 FileInputStream in = new FileInputStream(file);
+
+                System.out.println("cerco file:" + file);
                 out.writeBytes("HTTP/1.1 200 OK" + "\n");
                 System.out.println(myObj.length());
                 out.writeBytes("Content-Length: " + myObj.length() + "\n");
@@ -33,13 +37,16 @@ public class App {
                 while ((n = in.read(buf)) != -1) {
                     out.write(buf, 0, n);
                 }
-                // out.flush();
-                out.close();
+                System.out.println("----ho inviato:" + file);
                 in.close();
             } catch (Exception e) {
-                DataOutputStream out = new DataOutputStream(s.getOutputStream());
+                System.out.println("l'estensione è:" + extFile);
+                if (extFile.equals("") || extFile.isEmpty()) {
+                    redirect(out, filet + "/");
+                }
                 out.writeBytes("HTTP/1.1 404 Not found" + "\n");
             }
+            out.close();
         } catch (Exception e) {
             System.out.println("errore");
         }
@@ -73,30 +80,15 @@ public class App {
         return type;
     }
 
-    // private static String trovaFile(String percorso, String tipiAccettati, String
-    // tipoRichiesto) {
-    // String[] temp = tipiAccettati.split(",");
-    // try {
-    // Scanner isEx = new Scanner(new File(percorso + "." + tipoRichiesto));
-    // String t = isEx.nextLine();
-    // return percorso + "." + tipoRichiesto + "," +
-    // tipiAccettati.split(",")[0].split("/")[0] + "/"
-    // + tipoRichiesto;
-    // } catch (Exception e) {
-    // // TODO: handle exception
-    // }
-    // for (int i = 0; i < temp.length; i++) {
-    // try {
-    // String file = percorso + temp[i].split("/")[1];
-    // Scanner isEx = new Scanner(new File(file));
-    // String t = isEx.nextLine();
-    // return file + "," + temp[i];
-    // } catch (Exception e) {
-    // // TODO: handle exception
-    // }
-    // }
-    // return "404,404";
-    // }
+    private static void redirect(DataOutputStream out, String location) {
+        try {
+            out.writeBytes("HTTP/1.1 301 Move Permanently" + "\n");
+            out.writeBytes("Location: " + location + "\n");
+            out.writeBytes("\n");
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+    }
 
     public static void main(String[] args) {
         try {
@@ -112,18 +104,22 @@ public class App {
                     System.out.println(in);
                     if (percorso.isEmpty() && (!in.isEmpty() || !in.equals(null))) {
                         percorso = in.split(" ")[1];
-                        if (!percorso.startsWith("/")) {
-                            percorso = "/" + percorso;
-                        }
-                        percorso = "root" + percorso;
-                        ext = percorso.split("\\.")[1];
-                        percorso = percorso.split("\\.")[0];
                     }
                     if (in.isEmpty() || in.equals(null)) {
                         break;
                     }
                 } while (true);
-                sendFile(client, percorso + "." + ext, ext);
+                System.out.println("----percorso:" + percorso + ext);
+                if (percorso.endsWith("/")) {
+                    percorso = percorso + "index.html";
+                }
+                try {
+                    ext = percorso.split("\\.")[1];
+                } catch (Exception e) {
+                    System.out.println("errore nel trovare l'estensione");
+                }
+                System.out.println("----percorso:" + percorso);
+                sendFile(client, percorso, ext);
             }
         } catch (Exception e) {
 
