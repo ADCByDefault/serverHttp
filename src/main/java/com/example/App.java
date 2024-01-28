@@ -1,13 +1,14 @@
 package com.example;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.sql.Date;
+import java.util.ArrayList;
+import java.util.Date;
+
+import com.fasterxml.jackson.core.exc.StreamWriteException;
+import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Hello world!
@@ -24,9 +25,7 @@ public class App {
                 File myObj = new File(file);
                 FileInputStream in = new FileInputStream(file);
 
-                System.out.println("cerco file:" + file);
                 out.writeBytes("HTTP/1.1 200 OK" + "\n");
-                System.out.println(myObj.length());
                 out.writeBytes("Content-Length: " + myObj.length() + "\n");
                 out.writeBytes("Server: Java HTTP Server from Benve: 1.0" + "\n");
                 out.writeBytes("Date: " + new Date(0) + "\n");
@@ -43,8 +42,9 @@ public class App {
                 System.out.println("l'estensione è:" + extFile);
                 if (extFile.equals("") || extFile.isEmpty()) {
                     redirect(out, filet + "/");
+                } else {
+                    out.writeBytes("HTTP/1.1 404 Not found" + "\n");
                 }
-                out.writeBytes("HTTP/1.1 404 Not found" + "\n");
             }
             out.close();
         } catch (Exception e) {
@@ -71,6 +71,7 @@ public class App {
                 type = "text/html";
                 break;
             case "js":
+            case "json":
                 type = "application/js";
                 break;
             default:
@@ -91,6 +92,15 @@ public class App {
     }
 
     public static void main(String[] args) {
+        Studente s1 = new Studente("s1", "c1", new Date());
+        Studente s2 = new Studente("s2", "c2", new Date());
+        Studente s3 = new Studente("s3", "c3", new Date());
+        Classe c = new Classe("5", "DIA", "est-5");
+        ArrayList<Studente> a = new ArrayList<>();
+        a.add(s1);
+        a.add(s2);
+        a.add(s3);
+        c.setStudenti(a);
         try {
             ServerSocket serverSocket = new ServerSocket(8080);
             while (true) {
@@ -109,20 +119,27 @@ public class App {
                         break;
                     }
                 } while (true);
-                System.out.println("----percorso:" + percorso + ext);
+                System.out.println("----percorso:" + percorso);
                 if (percorso.endsWith("/")) {
                     percorso = percorso + "index.html";
                 }
                 try {
                     ext = percorso.split("\\.")[1];
                 } catch (Exception e) {
+                    ext = "";
                     System.out.println("errore nel trovare l'estensione");
                 }
-                System.out.println("----percorso:" + percorso);
+                if (percorso.equals("/classe.json")) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    try {
+                        mapper.writeValue(new File("./root/classe.json"), c);
+                    } catch (StreamWriteException e) {
+                        System.out.println("errore nel creare il file");
+                    }
+                }
                 sendFile(client, percorso, ext);
             }
         } catch (Exception e) {
-
             System.out.println("errore" + e);
         }
     }
